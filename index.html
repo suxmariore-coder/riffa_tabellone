@@ -3,49 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tabella Interattiva 1-90 con Pagamento</title>
+<title>Tabella Interattiva 1-90</title>
 <style>
   body {
     font-family: Arial, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 20px;
+    margin: 10px;
     background-color: #f9f9f9;
   }
 
   h2 {
     margin-bottom: 10px;
+    text-align: center;
   }
 
   .status {
-    margin-bottom: 20px;
-    font-size: 18px;
+    margin-bottom: 15px;
+    font-size: 16px;
     font-weight: bold;
+    text-align: center;
   }
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(10, 70px);
-    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+    gap: 6px;
+    width: 100%;
+    max-width: 700px;
   }
 
   .number {
-    width: 70px;
-    height: 70px;
+    aspect-ratio: 1 / 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     user-select: none;
     background-color: #4CAF50;
     color: white;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     transition: background-color 0.3s, transform 0.2s;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     text-align: center;
   }
 
@@ -59,9 +62,11 @@
   }
 
   .name {
-    font-size: 12px;
+    font-size: 10px;
     font-weight: normal;
-    margin-top: 4px;
+    margin-top: 3px;
+    word-break: break-word;
+    text-align: center;
   }
 
   /* Popup overlay */
@@ -76,19 +81,21 @@
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    padding: 10px;
   }
 
   .popup {
     background: white;
-    padding: 20px;
+    padding: 15px;
     border-radius: 10px;
-    width: 300px;
+    width: 100%;
+    max-width: 320px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
   }
 
   .popup input, .popup select, .popup button {
     width: 100%;
-    margin: 10px 0;
+    margin: 8px 0;
     padding: 8px;
     font-size: 14px;
   }
@@ -105,6 +112,18 @@
     background-color: #45a049;
   }
 
+  /* Media query per schermi molto piccoli */
+  @media (max-width: 400px) {
+    .number {
+      font-size: 14px;
+    }
+    .name {
+      font-size: 9px;
+    }
+    .popup {
+      padding: 12px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -190,8 +209,7 @@ popupConfirm.addEventListener('click', () => {
   popupOverlay.style.display = 'none';
 
   if (payment === "paypal") {
-    // PayPal importo minimo 2€
-    const paypalLink = "https://www.paypal.me/reimar2002/2";
+    const paypalLink = "https://www.paypal.me/reimar2002/2"; // minimo 2€
     window.open(paypalLink, "_blank");
 
     setTimeout(() => {
@@ -199,7 +217,6 @@ popupConfirm.addEventListener('click', () => {
     }, 5000);
 
   } else if (payment === "revolut") {
-    // Revolut fisso
     const revolutLink = "https://revolut.me/marioreita";
     window.open(revolutLink, "_blank");
 
