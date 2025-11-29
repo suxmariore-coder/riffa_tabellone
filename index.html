@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/umd/supabase.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Riffa 1-90</title>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/umd/supabase.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -31,118 +34,67 @@
       transition: 0.2s;
       font-size: 18px;
       user-select: none;
-      position: relative;
     }
 
     .num:hover { background: #e0e0e0; }
     .selected { background: #4caf50; color: white; border-color: #4caf50; }
     .sold { background: #b71c1c; color: white; border-color: #b71c1c; cursor: not-allowed; }
 
-    .buyer-label {
-      font-size: 10px;
-      position: absolute;
-      bottom: 2px;
-      left: 2px;
-      color: yellow;
-    }
-
     #selectedList { margin-top: 20px; font-size: 18px; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <h1>Riffa – Seleziona il tuo numero</h1>
+
   <div class="grid" id="grid"></div>
   <div id="selectedList">Nessun numero selezionato.</div>
 
-  <button id="payBtn" style="margin-top:20px; padding:12px 20px; font-size:16px; border:none; background:#2196f3; color:white; border-radius:8px; cursor:pointer;">Paga i numeri selezionati</button>
-  <button id="stripeBtn" style="margin-top:20px; padding:12px 20px; font-size:16px; border:none; background:#6a1b9a; color:white; border-radius:8px; cursor:pointer;">Paga con Carta (Stripe)</button>
-  <button id="revolutBtn" style="margin-top:20px; padding:12px 20px; font-size:16px; border:none; background:#000000; color:white; border-radius:8px; cursor:pointer;">Paga con Revolut</button>
-
   <script>
-    const SUPABASE_URL = 'https://psyxuttckhaoxfxoivec.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
-    const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // --- Supabase ---
+    const supabaseUrl = 'INSERISCI_LA_TUA_SUPABASE_URL';
+    const supabaseKey = 'INSERISCI_LA_TUA_CHIAVE_ANON';
+    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
+    let soldNumbers = []; // Qui si caricheranno i numeri già venduti dal DB
+    const selected = new Set();
 
     const grid = document.getElementById('grid');
     const selectedList = document.getElementById('selectedList');
-    const selected = new Set();
-    let soldNumbers = [];
 
-    async function loadSoldNumbers() {
-      const { data, error } = await supabase.from('sold_numbers').select('*');
-      if (error) { console.error(error); return; }
-      soldNumbers = data;
-      renderGrid();
-    }
+    for (let i = 1; i <= 90; i++) {
+      const div = document.createElement('div');
+      div.classList.add('num');
+      div.textContent = i;
 
-    function renderGrid() {
-      grid.innerHTML = '';
-      for (let i = 1; i <= 90; i++) {
-        const div = document.createElement('div');
-        div.classList.add('num');
-        div.textContent = i;
+      if (soldNumbers.includes(i)) div.classList.add('sold');
 
-        const sold = soldNumbers.find(n => n.number === i);
-        if (sold) {
-          div.classList.add('sold');
-          const label = document.createElement('div');
-          label.classList.add('buyer-label');
-          label.textContent = sold.buyer || 'anon';
-          div.appendChild(label);
-        }
+      div.addEventListener('click', () => {
+        if (div.classList.contains('sold')) return;
+        if (selected.has(i)) { selected.delete(i); div.classList.remove('selected'); }
+        else { selected.add(i); div.classList.add('selected'); }
+        updateList();
+      });
 
-        if (selected.has(i)) div.classList.add('selected');
-
-        div.addEventListener('click', () => {
-          if (div.classList.contains('sold')) return;
-          if (selected.has(i)) { selected.delete(i); div.classList.remove('selected'); }
-          else { selected.add(i); div.classList.add('selected'); }
-          updateList();
-        });
-
-        grid.appendChild(div);
-      }
+      grid.appendChild(div);
     }
 
     function updateList() {
-      if (selected.size === 0) selectedList.textContent = 'Nessun numero selezionato.';
-      else selectedList.textContent = 'Hai selezionato: ' + Array.from(selected).sort((a,b)=>a-b).join(', ');
+      if (selected.size === 0) selectedList.textContent = "Nessun numero selezionato.";
+      else selectedList.textContent = "Hai selezionato: " + Array.from(selected).sort((a,b) => a-b).join(', ');
     }
+  </script>
 
-    async function saveNumbers(numbers, buyer = 'anon', method = 'paypal') {
-      for (const num of numbers) {
-        const { error } = await supabase.from('sold_numbers').insert([{ number: num, buyer, paid_via: method }]);
-        if (error) console.error(error);
-        else soldNumbers.push({ number: num, buyer, paid_via: method });
-      }
+  <button id="payBtn" style="margin-top:20px;padding:12px 20px;font-size:16px;border:none;background:#2196f3;color:white;border-radius:8px;cursor:pointer;">Paga i numeri selezionati</button>
+
+  <script>
+    document.getElementById('payBtn').addEventListener('click', () => {
+      if (selected.size === 0) { alert('Seleziona almeno un numero prima di pagare.'); return; }
+      const numeri = Array.from(selected).sort((a,b)=>a-b);
+      const prezzo = numeri.length * 1; // prezzo per numero
+      alert('Simulazione pagamento: ' + numeri.join(', ') + ' - Totale €' + prezzo.toFixed(2));
+      numeri.forEach(num => { soldNumbers.push(num); const cell = Array.from(document.querySelectorAll('.num')).find(n => n.textContent == num); if (cell){cell.classList.add('sold'); cell.classList.remove('selected');} });
       selected.clear();
       updateList();
-      renderGrid();
-    }
-
-    loadSoldNumbers();
-
-    document.getElementById('payBtn').addEventListener('click', () => {
-      if (selected.size === 0) return alert('Seleziona almeno un numero prima di pagare.');
-      const numeri = Array.from(selected).sort((a,b)=>a-b);
-      const buyerName = prompt('Inserisci il tuo nome:') || 'anon';
-      saveNumbers(numeri, buyerName, 'paypal');
-    });
-
-    const stripe = Stripe('pk_test_123456789');
-    document.getElementById('stripeBtn').addEventListener('click', async () => {
-      if (selected.size === 0) return alert('Seleziona almeno un numero prima di pagare.');
-      const numeri = Array.from(selected).sort((a,b)=>a-b);
-      const buyerName = prompt('Inserisci il tuo nome:') || 'anon';
-      saveNumbers(numeri, buyerName, 'stripe');
-    });
-
-    document.getElementById('revolutBtn').addEventListener('click', () => {
-      if (selected.size === 0) return alert('Seleziona almeno un numero prima di pagare.');
-      const numeri = Array.from(selected).sort((a,b)=>a-b);
-      const buyerName = prompt('Inserisci il tuo nome:') || 'anon';
-      saveNumbers(numeri, buyerName, 'revolut');
     });
   </script>
 </body>
