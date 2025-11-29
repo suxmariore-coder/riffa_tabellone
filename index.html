@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tabella Interattiva 1-90 Moderna</title>
+<title>Tabella Interattiva 1-90 con Pagamento</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -190,22 +190,22 @@ popupConfirm.addEventListener('click', () => {
   popupOverlay.style.display = 'none';
 
   if (payment === "paypal") {
-    const paypalLink = "https://www.paypal.me/reimar2002/1"; // esempio 1€
+    // PayPal importo minimo 2€
+    const paypalLink = "https://www.paypal.me/reimar2002/2";
     window.open(paypalLink, "_blank");
 
-    // Simulazione pagamento
     setTimeout(() => {
       markNumberPurchased(selectedNumberDiv, name);
     }, 5000);
 
   } else if (payment === "revolut") {
-    const revolutLink = prompt("Inserisci il link di pagamento Revolut generato dal server:");
-    if (revolutLink) {
-      window.open(revolutLink, "_blank");
-      setTimeout(() => {
-        markNumberPurchased(selectedNumberDiv, name);
-      }, 5000);
-    }
+    // Revolut fisso
+    const revolutLink = "https://revolut.me/marioreita";
+    window.open(revolutLink, "_blank");
+
+    setTimeout(() => {
+      markNumberPurchased(selectedNumberDiv, name);
+    }, 5000);
   }
 });
 
