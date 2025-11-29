@@ -1,101 +1,229 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Riffa 1-90</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tabella Interattiva 1-90 Moderna</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px;
+    background-color: #f9f9f9;
+  }
 
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/umd/supabase.js"></script>
+  h2 {
+    margin-bottom: 10px;
+  }
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
-      text-align: center;
-    }
-    h1 { margin-bottom: 20px; }
+  .status {
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: bold;
+  }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(10, 1fr);
-      gap: 8px;
-      max-width: 500px;
-      margin: 0 auto;
-    }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(10, 70px);
+    gap: 8px;
+  }
 
-    .num {
-      padding: 15px;
-      background: white;
-      border: 2px solid #ccc;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.2s;
-      font-size: 18px;
-      user-select: none;
-    }
+  .number {
+    width: 70px;
+    height: 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    transition: background-color 0.3s, transform 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    text-align: center;
+  }
 
-    .num:hover { background: #e0e0e0; }
-    .selected { background: #4caf50; color: white; border-color: #4caf50; }
-    .sold { background: #b71c1c; color: white; border-color: #b71c1c; cursor: not-allowed; }
+  .number:hover {
+    transform: scale(1.05);
+  }
 
-    #selectedList { margin-top: 20px; font-size: 18px; }
-  </style>
+  .number.purchased {
+    background-color: #f44336;
+    cursor: default;
+  }
+
+  .name {
+    font-size: 12px;
+    font-weight: normal;
+    margin-top: 4px;
+  }
+
+  /* Popup overlay */
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .popup {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  }
+
+  .popup input, .popup select, .popup button {
+    width: 100%;
+    margin: 10px 0;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .popup button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .popup button:hover {
+    background-color: #45a049;
+  }
+
+</style>
 </head>
 <body>
-  <h1>Riffa – Seleziona il tuo numero</h1>
 
-  <div class="grid" id="grid"></div>
-  <div id="selectedList">Nessun numero selezionato.</div>
+<h2>Tabella Interattiva 1-90</h2>
+<div class="status" id="status">
+  Numeri disponibili: 90 | Numeri acquistati: 0
+</div>
 
-  <script>
-    // --- Supabase ---
-    const supabaseUrl = 'INSERISCI_LA_TUA_SUPABASE_URL';
-    const supabaseKey = 'INSERISCI_LA_TUA_CHIAVE_ANON';
-    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+<div class="grid" id="numberGrid"></div>
 
-    let soldNumbers = []; // Qui si caricheranno i numeri già venduti dal DB
-    const selected = new Set();
+<!-- Popup per inserimento dati -->
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup">
+    <h3>Acquista Numero <span id="popupNumber"></span></h3>
+    <input type="text" id="popupName" placeholder="Inserisci il tuo nome">
+    <select id="popupPayment">
+      <option value="">Seleziona metodo pagamento</option>
+      <option value="paypal">PayPal</option>
+      <option value="revolut">Revolut</option>
+    </select>
+    <button id="popupConfirm">Conferma</button>
+    <button id="popupCancel" style="background-color: #f44336; margin-top: 5px;">Annulla</button>
+  </div>
+</div>
 
-    const grid = document.getElementById('grid');
-    const selectedList = document.getElementById('selectedList');
+<script>
+const grid = document.getElementById('numberGrid');
+const status = document.getElementById('status');
+const popupOverlay = document.getElementById('popupOverlay');
+const popupNumber = document.getElementById('popupNumber');
+const popupName = document.getElementById('popupName');
+const popupPayment = document.getElementById('popupPayment');
+const popupConfirm = document.getElementById('popupConfirm');
+const popupCancel = document.getElementById('popupCancel');
 
-    for (let i = 1; i <= 90; i++) {
-      const div = document.createElement('div');
-      div.classList.add('num');
-      div.textContent = i;
+let availableCount = 90;
+let purchasedCount = 0;
+let selectedNumberDiv = null;
+let selectedNumber = null;
 
-      if (soldNumbers.includes(i)) div.classList.add('sold');
+function updateStatus() {
+  status.textContent = `Numeri disponibili: ${availableCount} | Numeri acquistati: ${purchasedCount}`;
+}
 
-      div.addEventListener('click', () => {
-        if (div.classList.contains('sold')) return;
-        if (selected.has(i)) { selected.delete(i); div.classList.remove('selected'); }
-        else { selected.add(i); div.classList.add('selected'); }
-        updateList();
-      });
+// Crea numeri
+for (let i = 1; i <= 90; i++) {
+  const numberDiv = document.createElement('div');
+  numberDiv.classList.add('number');
 
-      grid.appendChild(div);
+  const numberSpan = document.createElement('span');
+  numberSpan.textContent = i;
+  numberDiv.appendChild(numberSpan);
+
+  const nameSpan = document.createElement('span');
+  nameSpan.classList.add('name');
+  numberDiv.appendChild(nameSpan);
+
+  numberDiv.addEventListener('click', () => {
+    if (!numberDiv.classList.contains('purchased')) {
+      selectedNumberDiv = numberDiv;
+      selectedNumber = i;
+      popupNumber.textContent = i;
+      popupName.value = "";
+      popupPayment.value = "";
+      popupOverlay.style.display = 'flex';
     }
+  });
 
-    function updateList() {
-      if (selected.size === 0) selectedList.textContent = "Nessun numero selezionato.";
-      else selectedList.textContent = "Hai selezionato: " + Array.from(selected).sort((a,b) => a-b).join(', ');
+  grid.appendChild(numberDiv);
+}
+
+// Popup conferma acquisto
+popupConfirm.addEventListener('click', () => {
+  const name = popupName.value.trim();
+  const payment = popupPayment.value;
+
+  if (!name || !payment) {
+    alert("Compila tutti i campi!");
+    return;
+  }
+
+  popupOverlay.style.display = 'none';
+
+  if (payment === "paypal") {
+    const paypalLink = "https://www.paypal.me/reimar2002/1"; // esempio 1€
+    window.open(paypalLink, "_blank");
+
+    // Simulazione pagamento
+    setTimeout(() => {
+      markNumberPurchased(selectedNumberDiv, name);
+    }, 5000);
+
+  } else if (payment === "revolut") {
+    const revolutLink = prompt("Inserisci il link di pagamento Revolut generato dal server:");
+    if (revolutLink) {
+      window.open(revolutLink, "_blank");
+      setTimeout(() => {
+        markNumberPurchased(selectedNumberDiv, name);
+      }, 5000);
     }
-  </script>
+  }
+});
 
-  <button id="payBtn" style="margin-top:20px;padding:12px 20px;font-size:16px;border:none;background:#2196f3;color:white;border-radius:8px;cursor:pointer;">Paga i numeri selezionati</button>
+// Annulla popup
+popupCancel.addEventListener('click', () => {
+  popupOverlay.style.display = 'none';
+});
 
-  <script>
-    document.getElementById('payBtn').addEventListener('click', () => {
-      if (selected.size === 0) { alert('Seleziona almeno un numero prima di pagare.'); return; }
-      const numeri = Array.from(selected).sort((a,b)=>a-b);
-      const prezzo = numeri.length * 1; // prezzo per numero
-      alert('Simulazione pagamento: ' + numeri.join(', ') + ' - Totale €' + prezzo.toFixed(2));
-      numeri.forEach(num => { soldNumbers.push(num); const cell = Array.from(document.querySelectorAll('.num')).find(n => n.textContent == num); if (cell){cell.classList.add('sold'); cell.classList.remove('selected');} });
-      selected.clear();
-      updateList();
-    });
-  </script>
+function markNumberPurchased(numberDiv, name) {
+  numberDiv.classList.add('purchased');
+  numberDiv.querySelector('.name').textContent = name;
+  availableCount--;
+  purchasedCount++;
+  updateStatus();
+}
+
+updateStatus();
+</script>
+
 </body>
 </html>
